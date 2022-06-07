@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .cavs {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .inputc {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(225, 225, 225, 0.5);
+            display: none;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            /* border:2px solid #999; */
+            color: rgb(240, 92, 92)
+        }
+
+        .inputbox {
+            position: relative;
+            width: 600px;
+            height: 300px;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .labelText {
+            width: 100%;
+            text-align: center;
+            font-size: 18;
+            line-height: 50px;
+        }
+
+        input {
+            width: 360px;
+            height: 40px;
+            line-height: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas class='cavs' id="cav0"></canvas>
+    <canvas class='cavs' id="cav1"></canvas>
+    <div class="inputc" id="md">
+
+        <div class="inputbox">
+            <div class="close" onclick="modelInput('close')">关闭</div>
+            <div class="labelText">请输入节点名称</div>
+            <input type="text" id="textInput" placeholder="按回车提交">
+        </div>
+    </div>
+</body>
+<script>
+    class mynode {
+        constructor(x, y) {
+            this.nodeid = Math.random();
+            this.currentx = x;
+            this.currenty = y;
+            this.fromx = x;
+            this.fromy = y;
+            this.text = '节点'
+            this.status = 'stop'
+            this.padding = 20;
+            this.drawArea = {
+                stx: -99999999,
+                sty: -99999999,
+                width: 0,
+                height: 0,
+            }
+        }
+        setStatus(s) {
+            this.status = s;
+        }
+        setText(txt) {
+            this.text = txt;
+        }
+        move(addx, addy) {
+            if (this.status == 'stop') {
+                this.setStatus('moving');
+                this.fromx = this.currentx;
+                this.fromy = this.currenty;
+            }
+            this.currentx += addx;
+            this.currenty += addy;
+        }
+        isIn(x, y) {
+            if (x > this.drawArea.stx && x < this.drawArea.stx + this.drawArea.width && y > this.drawArea.sty && y < this.drawArea.sty + this.drawArea.height) {
+                if(mystate.linkingMode.linking){
+
+                }
+                else{
+                    if (x - this.drawArea.stx <= 20) {
+                    mystate.linkingMode = {
+                        linking: true,
+                        side: 'left'
+                    }
+                }
+                else if (this.drawArea.stx + this.drawArea.width - x < 20) {
+                    mystate.linkingMode = {
+                        linking: true,
+                        side: 'right'
+                    }
+                }
+                else {
+                    mystate.linkingMode = {
+                        linking: false
+                    }
+                }
+                }
+                
+                return true;
+            }
+            return false;
+        }
+        draw(ctx) {
+            // ctx.strokeText();
+            let text = this.text;
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.font = 'normal 20px arial'
+            let textinfo = ctx.measureText(text);
+            let textWidth = textinfo.width;
+            let textHeight = textinfo.fontBoundingBoxAscent + textinfo.fontBoundingBoxDescent;
+
+            ctx.fillText(this.text, this.currentx, this.currenty);
+
+            let padding = this.padding;
+            let pnt = {
+                x: this.currentx - textWidth / 2 - padding,
+                y: this.currenty - textHeight / 2 - padding
+            }
+            //更新检测模型位置
+            this.drawArea.stx = pnt.x;
+            this.drawArea.sty = pnt.y;
+            this.drawArea.width = textWidth + 2 * padding;
+            this.drawArea.height = textHeight + 2 * padding;
+
+            ctx.beginPath();
+            ctx.moveTo(pnt.x, pnt.y);
+            ctx.lineTo(pnt.x + this.drawArea.width, pnt.y);
+            ctx.lineTo(pnt.x + this.drawArea.width, pnt.y + this.drawArea.height);
+            ctx.lineTo(pnt.x, pnt.y + this.drawArea.height);
+            // ctx.lineTo(pnt.x,pnt.y);
+            ctx.closePath();
+            ctx.strokeStyle = mystate.currentNode == this.nodeid ? '#999' : '#333'
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    } 
+</script>
+<script>
+    let scwidth = document.body.clientWidth;
+    let scheight = document.body.clientHeight;
+    //------------------------------------------------
+    //----背景图---
+    let cav0 = document.getElementById('cav0');
+    cav0.width = scwidth;
+    cav0.height = scheight;
+    let ctx0 = cav0.getContext('2d');
+    ctx0.translate(0.5, 0.5);
+    for (let i = 0; i < scwidth; i += 50) {
+        ctx0.moveTo(i, 0);
+        ctx0.lineTo(i, scheight);
+    }
+    for (let i = 0; i < scheight; i += 50) {
+        ctx0.moveTo(0, i);
+        ctx0.lineTo(scwidth, i);
+    }
+    ctx0.strokeStyle = '#eee'
+    ctx0.stroke();
+    //------------------------------------------------------
+    //----活动画布
+    let cav1 = document.getElementById('cav1');
+    cav1.width = scwidth;
+    cav1.height = scheight;
+    let ctx1 = cav1.getContext('2d');
+    ctx1.translate(0.5, 0.5);
+    //------------------------
+    //----应用数据----
+    let mystate = {
+        nodes: {},
+        lines:[],
+        linkingLinePoint:{},
+        linkingMode:{
+            linking:false
+        },
+        currentNode: 0,
+        framec: 0,
+        nodeCreating: false,
+        setText(txt) {
+            this.nodes.get(this.currentNode).setText(txt);
+        }
+    }
+    //初始化node map
+    let nodes = new Map();
+    (function init() {
+        for (let i = 0; i < 10; i++) {
+            let node = new mynode(scwidth * Math.random(), scheight * Math.random());
+            node.setText('节点' + i)
+            nodes.set(node.nodeid, node);
+        }
+    })();
+    mystate.nodes = nodes;
+    (function run() {
+        update(ctx1);
+        mystate.framec++;
+        requestAnimationFrame(run)
+
+    })()
+
+    function update(ctx) {
+        ctx.clearRect(0, 0, scwidth, scheight);
+        mystate.nodes.forEach(node => {
+            node.draw(ctx);
+        })
+        mystate.lines.forEach(ls=>{
+            let ids = ls.split('+');
+            let node1 = mystate.nodes.get(ids[0]*1);
+            let node2 = mystate.nodes.get(ids[1]*1);
+            let dir = node1.currentx<node2.currentx?1:-1;
+            ctx.moveTo(node1.currentx+dir*node1.drawArea.width/2,node1.currenty);
+            let controlNum = 50;
+            ctx.bezierCurveTo(
+                node1.currentx+dir*node1.drawArea.width/2+dir*controlNum,node1.currenty,
+                node2.currentx-dir*node2.drawArea.width/2-dir*controlNum,node2.currenty,
+                node2.currentx-dir*node2.drawArea.width/2,node2.currenty
+            )
+            ctx.stroke();
+        })
+        if(mystate.linkingMode.linking&&mystate.linkingLinePoint.x!=undefined){
+            let cnode = mystate.nodes.get(mystate.currentNode);
+            ctx.moveTo(cnode.currentx,cnode.currenty);
+            let pnt = mystate.linkingLinePoint;
+            ctx.lineTo(pnt.x,pnt.y);
+            ctx.stroke();
+        }
+        ctx.stroke();
+    }
+
+    let eventStore = {
+        isMouseDown: false,
+        isMouseMoving: false,
+        mx: 0,
+        my: 0,
+        mouseUpTime: 0
+    };
+    //-------------------------------------------------------
+    //----事件处理函数
+    let mdown = cav1.addEventListener('mousedown', function (e) {
+        let x = e.offsetX;
+        let y = e.offsetY;
+        eventStore.isMouseDown = true;
+
+        mystate.linkingMode.linking = false;
+
+        let res = checkChoosedNode(x, y, nodes);
+        if (res.hasNode) {
+            mystate.currentNode = res.nodeid;
+        }
+        else {
+
+            mystate.currentNode = 9999;
+        }
+        eventStore.mx = x;
+        eventStore.my = y;
+    })
+    let mmove = cav1.addEventListener('mousemove', function (e) {
+        eventStore.isMouseMoving = true;
+        let x = e.offsetX;
+        let y = e.offsetY;
+        if (eventStore.isMouseDown && mystate.currentNode < 1) {
+            if (mystate.linkingMode.linking == false) {
+                let addx = x - eventStore.mx;
+                let addy = y - eventStore.my;
+                eventStore.mx = x;
+                eventStore.my = y;
+                nodes.get(mystate.currentNode).move(addx, addy)
+            }
+            else {
+                mystate.linkingLinePoint = {
+                    x,
+                    y
+                }
+            }
+
+        }
+
+    })
+    let mup = cav1.addEventListener('mouseup', function (e) {
+        
+        let x = e.offsetX;
+        let y = e.offsetY;
+        let time = new Date().getTime();
+        let res = checkChoosedNode(x, y, nodes);
+        if (res.hasNode) {
+            //判断添加连接线
+            if(mystate.linkingMode.linking == true){
+                let fromnode = mystate.currentNode;
+                let tonode = res.nodeid;
+                if(fromnode!=tonode){
+                    mystate.lines.push(fromnode+"+"+tonode);
+                    mystate.linkingMode.linking = false;
+                }
+                
+            }
+            mystate.currentNode = res.nodeid;
+            mystate.nodes.get(mystate.currentNode).setStatus('stop');
+        }
+        else {
+            mystate.currentNode = 9999;
+            
+
+        }
+        //接线模式在鼠标释放时结束
+        mystate.linkingMode = {
+                linking:false
+        }
+        //双击事件处理
+        if (time - eventStore.mouseUpTime < 300) {
+            console.log('dbclick')
+            if (mystate.currentNode < 1) {
+                modelInput('show');
+            }
+            //----双击空白处新建节点----
+            if (!res.hasNode && mystate.currentNode > 1) {
+                modelInput('new');
+                mystate.nodeCreating = true;
+                mystate.newNodeinfo = { x, y };
+            }
+        }
+        mystate.linkingMode.linking = false;
+        mystate.linkingLinePoint = {};
+        eventStore.isMouseDown = false;
+        eventStore.isMouseMoving = false;
+        eventStore.mouseUpTime = time;
+
+    })
+    //-------------------------------------------
+    //----辅助函数
+    //--------------------------------------------
+
+    //----检查给定的坐标对应的node------
+    function checkChoosedNode(x, y, nodes) {
+        //暂未考虑node层级问题
+        let res = {
+            hasNode: false,
+            nodeid: 0
+        }
+        try {
+            nodes.forEach(node => {
+                if (node.isIn(x, y)) {
+                    let nid = node.nodeid;
+                    res.hasNode = true;
+                    res.nodeid = nid;
+                }
+            })
+        }
+        catch (e) {
+            console.log(e)
+        }
+        return res;
+
+    }
+    function modelInput(type, data) {
+        let model = document.getElementById('md');
+        let ipt = document.getElementById('textInput');
+        if (type == 'show' || type == 'new') {
+            model.style.display = 'flex';
+        }
+
+        else if (type == 'close') {
+            model.style.display = 'none';
+            mystate.nodeCreating = false;
+            ipt.value = '';
+        }
+        else if (type == 'done') {
+            ipt.value = '';
+            model.style.display = 'none';
+        }
+    }
+    let ipc = document.getElementById('textInput').addEventListener('keydown', e => {
+        if (e.key == 'Enter') {
+            console.log(mystate.nodeCreating)
+            let txt = document.getElementById('textInput').value;
+            if (mystate.nodeCreating) {
+                mystate.nodeCreating = false;
+                let node = new mynode(mystate.newNodeinfo.x, mystate.newNodeinfo.y);
+                mystate.newNodeinfo = {};
+                node.setText(txt);
+                mystate.nodes.set(node.nodeid, node);
+            }
+            else {
+                mystate.setText(txt)
+            }
+
+            modelInput('done');
+
+        }
+
+    })
+</script>
+
+</html>
